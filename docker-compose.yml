@@ -1,0 +1,37 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      DATABASE_PATH: /app/data/ticketing.db
+    ports:
+      - "3000:3000"
+    volumes:
+      - sqlite_data:/app/data
+    restart: unless-stopped
+
+  backup:
+    build:
+      context: .
+      dockerfile: backup/Dockerfile
+    env_file:
+      - .env
+    environment:
+      BACKUP_SOURCE: /app/data/ticketing.db
+      BACKUP_DIR: /backups
+      BACKUP_CRON: ${BACKUP_CRON:-0 2 * * *}
+      BACKUP_KEEP_DAYS: ${BACKUP_KEEP_DAYS:-30}
+      TZ: ${BACKUP_TZ:-America/Los_Angeles}
+    depends_on:
+      - app
+    volumes:
+      - sqlite_data:/app/data:ro
+      - ./backups:/backups
+    restart: unless-stopped
+
+volumes:
+  sqlite_data:
